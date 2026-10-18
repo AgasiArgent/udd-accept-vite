@@ -42,6 +42,13 @@ function readSession(req: Request): string | null {
   }
 }
 
+/** The signed-in email, or null after answering 401. */
+function requireSession(req: Request, res: Response): string | null {
+  const email = readSession(req)
+  if (!email) res.status(401).json({ error: 'Not signed in' })
+  return email
+}
+
 function setSession(res: Response, email: string) {
   const payload = Buffer.from(
     JSON.stringify({ email, exp: Date.now() + MAX_AGE_S * 1000 }),
@@ -82,29 +89,20 @@ app.post('/api/logout', (_req, res) => {
 })
 
 app.get('/api/me', (req, res) => {
-  const email = readSession(req)
-  if (!email) {
-    res.status(401).json({ error: 'Not signed in' })
-    return
-  }
+  const email = requireSession(req, res)
+  if (!email) return
   res.json({ email })
 })
 
 app.post('/api/feedback', async (req, res) => {
-  const email = readSession(req)
-  if (!email) {
-    res.status(401).json({ error: 'Not signed in' })
-    return
-  }
+  const email = requireSession(req, res)
+  if (!email) return
   await postFeedback(req, res, email)
 })
 
 app.get('/api/feedback', async (req, res) => {
-  const email = readSession(req)
-  if (!email) {
-    res.status(401).json({ error: 'Not signed in' })
-    return
-  }
+  const email = requireSession(req, res)
+  if (!email) return
   await listFeedback(res, email)
 })
 
