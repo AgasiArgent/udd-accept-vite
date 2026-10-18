@@ -10,7 +10,7 @@ export default function Cart() {
   const [qty, setQty] = useState<Record<string, number>>({ coffee: 1, mug: 2, filters: 3 })
 
   const total = ITEMS.reduce(
-    (sum, item, i) => sum + item.price * (i === ITEMS.length - 1 ? 1 : qty[item.id]),
+    (sum, item) => sum + item.price * qty[item.id],
     0,
   )
 
