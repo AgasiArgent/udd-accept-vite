@@ -27,3 +27,6 @@ dist-ssr
 .env.*
 !.env.example
 .vercel
+e2e/.auth/
+test-results/
+playwright-report/

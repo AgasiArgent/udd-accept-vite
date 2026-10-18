@@ -1,8 +1,11 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import express from 'express'
 import type { Request, Response } from 'express'
+import { listFeedback, MAX_BODY_BYTES, postFeedback } from './_lib/feedback.js'
 
 const app = express()
+// The feedback route carries a screenshot, so it gets its own 3 MB parser before the default 100 kB one.
+app.use('/api/feedback', express.json({ limit: MAX_BODY_BYTES }))
 app.use(express.json())
 
 const COOKIE = 'session'
@@ -85,6 +88,30 @@ app.get('/api/me', (req, res) => {
     return
   }
   res.json({ email })
+})
+
+app.post('/api/feedback', async (req, res) => {
+  const email = readSession(req)
+  if (!email) {
+    res.status(401).json({ error: 'Not signed in' })
+    return
+  }
+  await postFeedback(req, res, email)
+})
+
+app.get('/api/feedback', async (req, res) => {
+  const email = readSession(req)
+  if (!email) {
+    res.status(401).json({ error: 'Not signed in' })
+    return
+  }
+  await listFeedback(res, email)
+})
+
+// Body-too-large and malformed-JSON errors from the parsers, as JSON instead of an HTML page.
+app.use((err: { status?: number }, _req: Request, res: Response, _next: unknown) => {
+  const status = err.status && err.status >= 400 && err.status < 500 ? err.status : 500
+  res.status(status).json({ error: status === 413 ? 'Report is larger than 3 MB.' : 'Bad request' })
 })
 
 export default app
